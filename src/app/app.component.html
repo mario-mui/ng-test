@@ -1,0 +1,144 @@
+<ejs-treegrid
+  #treegridObj
+  [dataSource]='data'
+  [enableVirtualization]=true
+  [allowResizing]="freezeColModel"
+  [allowFiltering]="filterColModel"
+  [allowSorting]="multiSortModel"
+  [allowRowDragAndDrop]="true"
+  height=291
+  childMapping='children'
+  idMapping="id"
+  [treeColumnIndex]='0'
+  [contextMenuItems]='contextMenuItems'
+  (contextMenuOpen)="contentMenuOpen()"
+  (contextMenuClick)="contentMenuClick($event)"
+  (checkboxChange)="change($event)"
+>
+  <e-columns>
+    <e-column
+      *ngFor="let col of cols;"
+      [uid]="col.id"
+      [showCheckbox]="col | pure: showCheck:rowCheckShow"
+      [headerText]="col.name"
+      [textAlign]="col.alignment"
+      [minWidth]="col.minColWidth"
+      [defaultValue]="col.defaultValue"
+      [customAttributes]="col | pure: getStyle"
+      [field]="col.name"
+    ></e-column>
+  </e-columns>
+</ejs-treegrid>
+
+<div hidden>
+  <ejs-checkbox [(ngModel)]="freezeColModel" name="FreezeCol" #FreezeCol label="FreezeCol" [enableRtl]="true"></ejs-checkbox>
+  <ejs-checkbox [(ngModel)]="filterColModel" name="FilterCol" #FilterCol label="FilterCol" [enableRtl]="true"></ejs-checkbox>
+  <ejs-checkbox [(ngModel)]="multiSortModel" name="MultiSort" #MultiSort label="MultiSort" [enableRtl]="true"></ejs-checkbox>
+</div>
+
+<ejs-dialog
+  #colFormDialog
+  [showCloseIcon]='true'
+  [visible]="colFormDialogVisible"
+  (close)="colFormDialogVisible = false"
+  width="600px"
+  cssClass="col-form"
+>
+  <ng-template #content>
+    <form #colForm="ngForm">
+      <div class="form-item">
+        <label>Name</label>
+        <input class="e-input" [readonly]="colReadOnly" [(ngModel)]="colFormModel.name" name="name">
+      </div>
+      <div class="form-item" style="align-items: baseline;">
+        <label>Date Type</label>
+        <div>
+          <ejs-dropdownlist name="dataType" [readonly]="colReadOnly" [dataSource]='dataTypeList' [(value)]='colFormModel.dataType'></ejs-dropdownlist>
+          <div class="dw-values" *ngIf="colFormModel.dataType ==='DropDownList'">
+            <div [sortablejs]="dropDownListValues">
+              <div class="dw-value" *ngFor="let v of dropDownListValues; index as i">
+                <div class="value">{{ v }}</div>
+                <button ejs-button cssClass="e-small e-round" iconCss="e-btn-sb-icons e-icons icon-close" (click)="rmDrowDownListValue(i)"></button>
+              </div>
+            </div>
+            <div class="dw-value-add" *ngIf="addDropDownListValue">
+              <input class="e-input" [(ngModel)]="dropDownListValue" name="dropDownListValue">
+              <div class="dw-value-add-action">
+                <button ejs-button cssClass="e-small e-round" iconCss="e-btn-sb-icons e-icons icon-check" [isPrimary]="true" (click)="addDropDownListValueToList()"></button>
+                <button style="margin-left: 8px;" ejs-button cssClass="e-small e-round" iconCss="e-btn-sb-icons e-icons icon-close" (click)="addDropDownListValue = false"></button>
+              </div>
+            </div>
+            <button *ngIf="!addDropDownListValue" style="margin-top: 16px;" ejs-button cssClass="e-small e-round" iconCss="e-btn-sb-icons e-icons icon-plus" [isPrimary]="true" (click)="addDropDownListValue = true"></button>
+          </div>
+        </div>
+      </div>
+      <div class="form-item">
+        <label>Default Value</label>
+        <input class="e-input" [readonly]="colReadOnly" [(ngModel)]="colFormModel.defaultValue" name="defaultValue">
+      </div>
+      <div class="form-item">
+        <label>Minimum-Column-Width</label>
+        <input class="e-input" [readonly]="colReadOnly" [(ngModel)]="colFormModel.minColWidth" name="minColWidth">
+      </div>
+      <div class="form-item">
+        <label>Font-size</label>
+        <input class="e-input" [readonly]="colReadOnly" [(ngModel)]="colFormModel.fontSize" name="fontSize">
+      </div>
+      <div class="form-item">
+        <label>Font-color</label>
+        <input ejs-colorpicker type="color" [readonly]="colReadOnly" [(ngModel)]="colFormModel.fontColor" name="fontColor" />
+      </div>
+      <div class="form-item">
+        <label>Background-color</label>
+        <input ejs-colorpicker type="color" [readonly]="colReadOnly" [(ngModel)]="colFormModel.bg" name="color" />
+      </div>
+      <div class="form-item">
+        <label>Alignment</label>
+        <ejs-dropdownlist name="alignment" [readonly]="colReadOnly" [dataSource]="['left', 'right']" [(value)]='colFormModel.alignment'></ejs-dropdownlist>
+      </div>
+      <div class="form-item">
+        <label>Text-wrap</label>
+        <ejs-checkbox [(ngModel)]="colFormModel.textWrap" name="textWrap"></ejs-checkbox>
+      </div>
+    </form>
+  </ng-template>
+  <ng-template #footerTemplate>
+    <button *ngIf="!colReadOnly" class="e-btn e-info" (click)="addCol()">Save</button>
+    <button class="e-btn" (click)="colFormDialogVisible = false" >Cancel</button>
+  </ng-template>
+</ejs-dialog>
+
+<ejs-dialog
+  #rowFormDialog
+  [showCloseIcon]='true'
+  [visible]="rowFormDialogVisible"
+  (close)="rowFormDialogVisible = false"
+  width="600px"
+  cssClass="col-form"
+>
+  <ng-template #content>
+    <form #rowForm="ngForm" *ngIf="rowFormModel">
+      <div class="form-item" *ngFor="let item of cols">
+        <label>{{ item.name }}</label>
+        <ng-container [ngSwitch]="item.dataType">
+          <input *ngSwitchCase="'Text'" class="e-input" [(ngModel)]="rowFormModel[item.name]" [name]="item.name">
+          <input *ngSwitchCase="'Number'" class="e-input" type="number" [(ngModel)]="rowFormModel[item.name]" [name]="item.name">
+          <ng-container *ngSwitchCase="'Date'">
+            <ejs-datepicker [(ngModel)]="rowFormModel[item.name]" [name]="item.name"></ejs-datepicker>
+          </ng-container>
+          <ng-container *ngSwitchCase="'Boolean'">
+            <ejs-switch [(ngModel)]="rowFormModel[item.name]" [name]="item.name"></ejs-switch>
+          </ng-container>
+          <ng-container *ngSwitchCase="'DropDownList'">
+            <ejs-dropdownlist [name]="item.name" [dataSource]="item.options" [(ngModel)]="rowFormModel[item.name]"></ejs-dropdownlist>
+          </ng-container>
+        </ng-container>
+      </div>
+    </form>
+  </ng-template>
+  <ng-template #footerTemplate>
+    <button class="e-btn e-info" *ngIf="rowUpdate" (click)="editRow()">Save</button>
+    <button class="e-btn e-info" *ngIf="!rowUpdate" (click)="addRow()">Save</button>
+    <button class="e-btn" (click)="rowFormDialogVisible = false" >Cancel</button>
+  </ng-template>
+</ejs-dialog>
